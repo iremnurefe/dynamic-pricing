@@ -14,8 +14,11 @@ st.set_page_config(
 # Veri ve model yükle
 @st.cache_data
 def load_data():
-    df = pd.read_csv('data/processed/olist_features.csv')
-    elasticity = pd.read_csv('data/processed/price_elasticity.csv')
+    import os
+    # Streamlit Cloud için path ayarı
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    df = pd.read_csv(os.path.join(base_path, 'data/processed/olist_features.csv'))
+    elasticity = pd.read_csv(os.path.join(base_path, 'data/processed/price_elasticity.csv'))
     return df, elasticity
 
 df, elasticity_df = load_data()
