@@ -84,8 +84,8 @@ with tab1:
         else:
             analyze = st.button("🔍 Fiyat Optimize Et", use_container_width=True)
 
-    with col2:
-        if cost < current_price and 'analyze' in locals() and analyze:
+with col2:
+    if cost < current_price and analyze:
             optimal_price, scenarios, elasticity, comp_avg, cat_avg = optimize_price(
                 category, current_price, cost, target_margin
             )
