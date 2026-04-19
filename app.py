@@ -79,16 +79,18 @@ with tab1:
         current_price = st.number_input("Mevcut Fiyat (BRL)", min_value=1.0, max_value=5000.0, value=79.90, step=0.10)
         cost = st.number_input("Maliyet (BRL)", min_value=1.0, max_value=5000.0, value=45.00, step=0.10)
         target_margin = st.slider("Minimum Kar Marjı (%)", min_value=5, max_value=50, value=20) / 100
+        
         if cost >= current_price:
             st.error("⚠️ Maliyet fiyattan yüksek olamaz!")
         else:
-            analyze = st.button("🔍 Fiyat Optimize Et", use_container_width=True)
+            if st.button("🔍 Fiyat Optimize Et", use_container_width=True):
+                st.session_state['results'] = optimize_price(
+                    category, current_price, cost, target_margin
+                )
 
-with col2:
-    if cost < current_price and analyze:
-            optimal_price, scenarios, elasticity, comp_avg, cat_avg = optimize_price(
-                category, current_price, cost, target_margin
-            )
+    with col2:
+        if 'results' in st.session_state:
+            optimal_price, scenarios, elasticity, comp_avg, cat_avg = st.session_state['results']
             m1, m2, m3, m4 = st.columns(4)
             m1.metric("Mevcut Fiyat", f"{current_price:.2f} BRL")
             m2.metric("Önerilen Fiyat", f"{optimal_price:.2f} BRL",
