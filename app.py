@@ -109,11 +109,11 @@ with tab1:
             saved_price = r['current_price']
 
             m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Mevcut Fiyat", f"{saved_price:.2f} BRL")
-            m2.metric("Önerilen Fiyat", f"{optimal_price:.2f} BRL",
-                      f"{((optimal_price - saved_price) / saved_price * 100):.1f}%")
-            m3.metric("Rakip Ortalama", f"{comp_avg:.2f} BRL")
-            m4.metric("Elastikiyet", f"{elasticity:.3f}")
+            m1.metric("Mevcut Fiyat", f"{r['current_price']:.2f} BRL")
+            m2.metric("Önerilen Fiyat", f"{r['optimal_price']:.2f} BRL",
+                      f"{((r['optimal_price'] - r['current_price']) / r['current_price'] * 100):.1f}%")
+            m3.metric("Rakip Ortalama", f"{r['comp_avg']:.2f} BRL")
+            m4.metric("Elastikiyet", f"{r['elasticity']:.3f}")
             st.divider()
 
             fig, axes = plt.subplots(1, 2, figsize=(12, 4))
