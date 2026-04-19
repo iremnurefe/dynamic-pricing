@@ -87,34 +87,19 @@ with tab1:
                 st.session_state['results'] = optimize_price(
                     category, current_price, cost, target_margin
                 )
+                st.session_state['saved_current_price'] = current_price
 
     with col2:
         if 'results' in st.session_state:
             optimal_price, scenarios, elasticity, comp_avg, cat_avg = st.session_state['results']
+            saved_price = st.session_state.get('saved_current_price', current_price)
+            
             m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Mevcut Fiyat", f"{current_price:.2f} BRL")
+            m1.metric("Mevcut Fiyat", f"{saved_price:.2f} BRL")
             m2.metric("Önerilen Fiyat", f"{optimal_price:.2f} BRL",
-                      f"{((optimal_price-current_price)/current_price*100):.1f}%")
+                      f"{((optimal_price-saved_price)/saved_price*100):.1f}%")
             m3.metric("Rakip Ortalama", f"{comp_avg:.2f} BRL")
             m4.metric("Elastikiyet", f"{elasticity:.3f}")
-            st.divider()
-            fig, axes = plt.subplots(1, 2, figsize=(12, 4))
-            colors = ['green' if p == optimal_price else 'steelblue' for p in scenarios['price']]
-            axes[0].bar(scenarios['price'].astype(str), scenarios['profit'], color=colors)
-            axes[0].set_title('Fiyat vs Kar')
-            axes[0].set_xlabel('Fiyat (BRL)')
-            axes[0].set_ylabel('Kar (BRL)')
-            axes[0].tick_params(axis='x', rotation=45)
-            axes[1].plot(scenarios['price'], scenarios['expected_demand'],
-                        marker='o', color='coral', linewidth=2)
-            axes[1].set_title('Fiyat vs Talep')
-            axes[1].set_xlabel('Fiyat (BRL)')
-            axes[1].set_ylabel('Beklenen Talep')
-            plt.tight_layout()
-            st.pyplot(fig)
-            st.subheader("📊 Senaryo Analizi")
-            st.dataframe(scenarios, use_container_width=True)
-
 # TAB 2: SHAP Açıklaması
 with tab2:
     st.subheader("🔍 Model Neden Bu Fiyatı Öneriyor?")
