@@ -32,12 +32,15 @@ def optimize_price(category, current_price, cost, target_margin=0.20):
     category_avg = cat_data['price'].median()
     min_price = cost * (1 + target_margin)
     
+    # Başlangıç noktası olarak kategori medyanını kullan
+    base_price = max(current_price, category_avg)
+    
     scenarios = []
     for price_factor in [0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5]:
-        test_price = current_price * price_factor
+        test_price = base_price * price_factor
         if test_price < min_price:
             continue
-        price_change = (test_price - current_price) / current_price
+        price_change = (test_price - base_price) / base_price
         demand_change = elasticity * price_change
         expected_demand = max(100 * (1 + demand_change), 0)
         revenue = test_price * expected_demand
