@@ -120,4 +120,4 @@ with col2:
         
         # Senaryo tablosu
         st.subheader("📊 Senaryo Analizi")
-        st.dataframe(scenarios, use_container_width=True)
+        st.dataframe(scenarios, use_container_width=True):wq
