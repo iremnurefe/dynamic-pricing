@@ -29,12 +29,12 @@ def load_model():
 df, elasticity_df = load_data()
 model = load_model()
 
-def optimize_price(category, current_price, cost, target_margin=0.20):
+def optimize_price(category, current_price, cost, target_margin):
     cat_elasticity = elasticity_df[elasticity_df['category'] == category]['elasticity'].values
     elasticity = cat_elasticity[0] if len(cat_elasticity) > 0 else -0.5
     cat_data = df[df['product_category_name_english'] == category]
-    competitor_avg = cat_data['competitor_avg_price'].median()
-    category_avg = cat_data['price'].median()
+    competitor_avg = float(cat_data['competitor_avg_price'].median())
+    category_avg = float(cat_data['price'].median())
     min_price = cost * (1 + target_margin)
     base_price = max(current_price, category_avg)
     scenarios = []
@@ -58,20 +58,24 @@ def optimize_price(category, current_price, cost, target_margin=0.20):
         })
     scenarios_df = pd.DataFrame(scenarios)
     optimal_idx = scenarios_df['profit'].idxmax()
-    optimal_price = scenarios_df.loc[optimal_idx, 'price']
-    return optimal_price, scenarios_df, elasticity, competitor_avg, category_avg
+    optimal_price = float(scenarios_df.loc[optimal_idx, 'price'])
+    return optimal_price, scenarios_df, float(elasticity), competitor_avg, category_avg
 
-# Başlık
+# Session state başlat
+if 'show_results' not in st.session_state:
+    st.session_state.show_results = False
+if 'opt_results' not in st.session_state:
+    st.session_state.opt_results = None
+
 st.title("🏷️ Dinamik Fiyatlandırma Sistemi")
 st.markdown("Olist e-ticaret verisiyle eğitilmiş fiyat optimizasyon motoru")
 st.divider()
 
-# Sekmeler
 tab1, tab2 = st.tabs(["💰 Fiyat Optimizasyonu", "🔍 Model Açıklaması (SHAP)"])
 
-# TAB 1: Fiyat Optimizasyonu
 with tab1:
     col1, col2 = st.columns([1, 2])
+
     with col1:
         st.subheader("⚙️ Ürün Bilgileri")
         categories = sorted(df['product_category_name_english'].unique())
@@ -79,46 +83,72 @@ with tab1:
         current_price = st.number_input("Mevcut Fiyat (BRL)", min_value=1.0, max_value=5000.0, value=79.90, step=0.10)
         cost = st.number_input("Maliyet (BRL)", min_value=1.0, max_value=5000.0, value=45.00, step=0.10)
         target_margin = st.slider("Minimum Kar Marjı (%)", min_value=5, max_value=50, value=20) / 100
-        
+
         if cost >= current_price:
             st.error("⚠️ Maliyet fiyattan yüksek olamaz!")
         else:
             if st.button("🔍 Fiyat Optimize Et", use_container_width=True):
-                st.session_state['results'] = optimize_price(
-                    category, current_price, cost, target_margin
-                )
-                st.session_state['saved_current_price'] = current_price
+                result = optimize_price(category, current_price, cost, target_margin)
+                st.session_state.opt_results = {
+                    'optimal_price': result[0],
+                    'scenarios': result[1],
+                    'elasticity': result[2],
+                    'comp_avg': result[3],
+                    'cat_avg': result[4],
+                    'current_price': current_price
+                }
+                st.session_state.show_results = True
 
     with col2:
-        if 'results' in st.session_state:
-            optimal_price, scenarios, elasticity, comp_avg, cat_avg = st.session_state['results']
-            saved_price = st.session_state.get('saved_current_price', current_price)
-            
+        if st.session_state.show_results and st.session_state.opt_results:
+            r = st.session_state.opt_results
+            optimal_price = r['optimal_price']
+            scenarios = r['scenarios']
+            elasticity = r['elasticity']
+            comp_avg = r['comp_avg']
+            saved_price = r['current_price']
+
             m1, m2, m3, m4 = st.columns(4)
             m1.metric("Mevcut Fiyat", f"{saved_price:.2f} BRL")
             m2.metric("Önerilen Fiyat", f"{optimal_price:.2f} BRL",
-                      f"{((optimal_price-saved_price)/saved_price*100):.1f}%")
+                      f"{((optimal_price - saved_price) / saved_price * 100):.1f}%")
             m3.metric("Rakip Ortalama", f"{comp_avg:.2f} BRL")
             m4.metric("Elastikiyet", f"{elasticity:.3f}")
-# TAB 2: SHAP Açıklaması
+            st.divider()
+
+            fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+            colors = ['green' if p == optimal_price else 'steelblue' for p in scenarios['price']]
+            axes[0].bar(scenarios['price'].astype(str), scenarios['profit'], color=colors)
+            axes[0].set_title('Fiyat vs Kar')
+            axes[0].set_xlabel('Fiyat (BRL)')
+            axes[0].set_ylabel('Kar (BRL)')
+            axes[0].tick_params(axis='x', rotation=45)
+            axes[1].plot(scenarios['price'], scenarios['expected_demand'],
+                        marker='o', color='coral', linewidth=2)
+            axes[1].set_title('Fiyat vs Talep')
+            axes[1].set_xlabel('Fiyat (BRL)')
+            axes[1].set_ylabel('Beklenen Talep')
+            plt.tight_layout()
+            st.pyplot(fig)
+
+            st.subheader("📊 Senaryo Analizi")
+            st.dataframe(scenarios, use_container_width=True)
+
 with tab2:
     st.subheader("🔍 Model Neden Bu Fiyatı Öneriyor?")
     st.markdown("SHAP değerleri modelin her özelliği nasıl kullandığını gösterir.")
-
     col1, col2 = st.columns([1, 2])
     with col1:
         st.image('outputs/figures/shap_global.png', caption='Global Özellik Önemi')
     with col2:
         st.image('outputs/figures/shap_beeswarm.png', caption='Yönlü Etki Analizi')
-
     st.divider()
     st.subheader("📌 Tek Ürün Açıklaması")
     st.image('outputs/figures/shap_waterfall.png', caption='Örnek Ürün İçin Fiyat Tahmini Açıklaması')
-
     st.divider()
     st.subheader("💡 Nasıl Okunur?")
     st.markdown("""
     - **Global Özellik Önemi:** Hangi özellik fiyatı en çok etkiliyor?
-    - **Yönlü Etki:** Kırmızı = yüksek değer, Mavi = düşük değer. Sağa giden bar fiyatı artırıyor, sola giden düşürüyor.
+    - **Yönlü Etki:** Kırmızı = yüksek değer, Mavi = düşük değer.
     - **Tek Ürün Açıklaması:** Modelin o ürün için neden o fiyatı önerdiğini adım adım gösteriyor.
     """)
