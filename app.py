@@ -115,8 +115,7 @@ with tab1:
             m3.metric("Rakip Ortalama", f"{r['comp_avg']:.2f} BRL")
             m4.metric("Elastikiyet", f"{r['elasticity']:.3f}")
             
-            # DEBUG — geçici
-            st.write(f"DEBUG → current_price: {r['current_price']} | optimal: {r['optimal_price']} | comp: {r['comp_avg']} | elasticity: {r['elasticity']}")
+
             st.divider()
 
             fig, axes = plt.subplots(1, 2, figsize=(12, 4))
